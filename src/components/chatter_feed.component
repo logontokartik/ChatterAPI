@@ -1,0 +1,339 @@
+<apex:component controller="ChatterFeedController"
+    selfClosing="true"
+    access="global"
+    allowDml="true">
+
+    <apex:attribute name="subjectid"
+      required="true"
+      type="Id"
+      access="global"
+      assignTo="{!m_subjectid}"
+      description="** Required ** The group to which the feed is posted."/>
+
+  <style>
+  
+	  img.postfeed  {
+	  	height: 50px;
+	  }
+	  
+	  h4.postfeed {
+	  	font-size: 18px;
+	  }
+	  
+	  p.postfeed {
+	  	font-size: 18px;
+	  }
+
+	  .commentfeed img {
+	  	height: 40px;
+	  }
+
+	  .commentfeed h4 {
+	  	font-size: 16px;
+	  }
+
+	  .commentfeed p {
+	  	font-size: 14px;
+	  }
+
+  </style>  
+
+  <!-- Custom Styles and JS files -->
+  <link rel="stylesheet" href="{!URLFOR($Resource.basestyles,'css/chosen.css')}"/>
+  <link rel="stylesheet" href="{!URLFOR($Resource.basestyles,'css/sweet-alert.css')}"/>
+  <link rel="stylesheet" href="{!URLFOR($Resource.basestyles,'css/bootstrap-tagsinput.css')}"/>
+  <link rel="stylesheet" href="{!URLFOR($Resource.basestyles,'css/jquery.mentionsInput.css')}"/>    
+  <link href="https://dl.dropboxusercontent.com/u/74862951/bootstrap/css/flatly.min.css" rel="stylesheet"/>
+    
+  <script src="//code.jquery.com/jquery-latest.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>	
+  <script src="{!URLFOR($Resource.basestyles,'js/handlebars.min.js')}"></script>
+  <script src="{!URLFOR($Resource.basestyles,'js/sweet-alert.min.js')}"></script>
+  <script src="{!URLFOR($Resource.basestyles,'js/chosen.jquery.min.js')}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.2/underscore-min.js"></script>
+  <script src="{!URLFOR($Resource.basestyles,'js/bootstrap-tagsinput.min.js')}"></script>
+  <script src="{!URLFOR($Resource.basestyles,'js/jquery.elastic.js')}"></script>
+  <script src="{!URLFOR($Resource.basestyles,'js/query.events.input.js')}"></script>
+  <script src="{!URLFOR($Resource.basestyles,'js/jquery.mentionsInput.js')}"></script>  
+
+  
+    <apex:outputPanel id="theFeedPanel">
+        <!-- BEGIN row DIV -->
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3" style="padding-top:10px;">
+                <!-- BEGIN share DIV -->
+              <div class="form-light form-group" id="newFeedDiv">
+                 <textarea class="form-control sharearea" rows="2" placeholder="What are you working on?" id="newFeedtarea"></textarea>
+                 <br/>
+                 <div class="row">
+                      <div class="col-md-6 col-md-offset-6">
+                          <button class="btn btn-primary btn-comment pull-right" id="newFeedbtn" hidefocus="true">
+                              <span>Share</span>
+                          </button>
+                      </div>
+                  </div>
+              </div>
+              <!-- END share DIV -->
+        
+              <!-- BEGIN Feeds Div -->
+              <div class="comment-list clearfix" id="comments"></div>
+              <!-- END Feeds Div -->
+        	</div>
+      	</div>      
+    </apex:outputPanel>
+
+    <!-- BEGIN Handlebar Template for Feed -->
+
+	  <script id="feed_template" type="text/x-handlers-template">
+		{{#if elements.length}}
+			<ul class="media-list">
+			{{#each elements}}
+			<li class="media">
+			    <div class="media-left">
+			      <a href="#">
+			        <img class="media-object" src="{{actor.photo.smallPhotoUrl}}" alt="{{actor.name}}" style="height:50px;">
+			      </a>
+			    </div>
+			    <div class="media-body">
+			      <h4 class="media-heading" style="font-size:18px; color:#015ba7">{{actor.name}}</h4>
+			       <p class="media-text postfeed" style="font-size:16px;">
+       					{{#each body.messageSegments}}
+			    			{{#isTextSegment type}}
+			    				{{text}}
+			    			{{/isTextSegment}}
+			    			{{#isMentionSegment type}}
+			    				<a href="#">{{record.displayName}}</a>
+			    			{{/isMentionSegment}}
+			    		{{/each}}
+			       </p>
+			       <div class="media-footer">
+			       			<a href="#" class="postfeed-comment" style="font-size:12px;" data-feedid="{{id}}">Comment</a>&nbsp;&nbsp;
+			       			{{#if capabilities.chatterLikes.isLikedByCurrentUser}}
+                  <a href="#" class="postfeed-like unlikeBtn" style="font-size:12px;" data-feedid="{{id}}" data-likeid="{{capabilities.chatterLikes.myLike.id}}">Unlike</a>&nbsp;
+			       			{{else}}
+                  <a href="#" class="postfeed-like likeBtn" style="font-size:12px;" data-feedid="{{id}}">Like</a>&nbsp;
+                  {{/if}}
+                  <em style="font-size:12px;"> {{dateFormat createdDate}} </em>
+			       </div>
+             {{#if capabilities.chatterLikes.likesMessage}}
+             <div class="like-footer">
+              <em style="font-size:12px;">{{capabilities.chatterLikes.likesMessage.text}}</em>
+             </div>
+             {{/if}}
+			       {{#each capabilities.comments.page.items}}
+			       		<div class="media">
+			       			<div class="media-left">
+						      <a href="#">
+						        <img class="media-object" style="height:40px;" src="{{user.photo.smallPhotoUrl}}" alt="{{user.name}}">
+						      </a>
+						    </div>
+						    <div class="media-body">
+						    	<h4 class="media-heading" style="font-size:16px;">{{user.name}}</h4>
+						    	<p class="media-text commentfeed" style="font-size:14px;">
+						    		{{#each body.messageSegments}}
+						    			{{#isTextSegment type}}
+						    				{{text}}
+						    			{{/isTextSegment}}
+						    			{{#isMentionSegment type}}
+						    				<span style="font-color:blue;">{{record.displayName}}</span>
+						    			{{/isMentionSegment}}
+						    		{{/each}}
+						    	</p>
+						    	<div class="media-footer">
+						       		<a href="#" class="postfeed-like" style="font-size:12px;" data-feedid="{{id}}">Like</a>&nbsp;
+                      <em style="font-size:12px;"> {{dateFormat createdDate}} </em>
+						       </div>
+						    </div>
+			       		</div>
+			       {{/each}}
+			    </div><br/>
+			    <div class="comment body" data-feedid="{{id}}">
+			    	<textarea class="form-control sharearea" rows="1" placeholder="Comment" id="reply_{{id}}"></textarea>
+			    	<button class="btn btn-alt btn-comment pull-right btn-sm replybtn"  hidefocus="true" id="replybtn_{{id}}" data-feedid="{{id}}">
+                    <span>Reply</span>
+                </button>
+			    </div>
+			</li>
+			{{/each}}
+			</ul>
+		{{/if}}
+	  </script>    
+
+    <script type="text/javascript">
+
+    	var feedItems;
+      	var mentionusers;
+    	var feedTemplate;
+    	var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    	var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    	Handlebars.registerHelper('isTextSegment', function(type,options) {
+		    if (type == 'Text')
+		    	return options.fn(this);
+		    else
+		    	return options.inverse(this);
+		  });
+
+		  Handlebars.registerHelper('isMentionSegment', function(type,options) {
+		    if (type == 'Mention')
+		    	return options.fn(this);
+		    else
+		    	return options.inverse(this);
+		  });
+
+		  Handlebars.registerHelper('dateFormat', function(dateString,options) {
+		    
+        var unformatted  = new Date(dateString);
+        var formatted    = new Date(dateString);
+        var currentDate  = new Date();
+        var yesterDate   = new Date(new Date().setDate(currentDate.getDate()-1)); // yesterday
+        var newDate;
+        
+        if (currentDate.setHours(0,0,0,0) == unformatted.setHours(0,0,0,0)) {
+          newDate =  "Today at " + formatAMPM(formatted);
+        } else if (currentDate.setHours(0,0,0,0) == unformatted.setHours(0,0,0,0)) {
+          newDate = "Yesterday at " + formatAMPM(formatted);
+        } else {
+          newDate = days[formatted.getDay()] + ", " + months[formatted.getMonth()] + " " + formatted.getDate() + ", " + formatted.getFullYear() + " at " + formatAMPM(formatted);
+        }
+
+        return new Handlebars.SafeString(newDate);
+		  });
+    
+      $(function(){
+
+        getUsers();
+
+        
+      		
+      	regHandlers();
+      	getFeedsForGroup();
+      		
+      });
+
+      function getUsers() {
+         // In case of a search pass the value to the function
+         mentionusers = new Array();   
+         Visualforce.remoting.Manager.invokeAction(
+            '{!$RemoteAction.ChatterFeedController.getUsers}',
+             null, function(result, event) {
+                console.log(result);
+                $.each(result,function(idx,user){
+                  var usr = {};
+                  usr.id = user.Id;
+                  usr.name = user.Name;
+                  usr.avatar = user.SmallPhotoUrl;
+                  usr.email = user.Email;
+                  usr.type = 'User';
+                  mentionusers.push(usr);  
+                });  
+
+                $('textarea.sharearea').mentionsInput({onDataRequest:function (mode, query, callback) {
+                  var data = mentionusers;
+                  data = _.filter(data, function(item) { return item.email.toLowerCase().indexOf(query.toLowerCase()) > -1 });
+                  callback.call(this, data);
+                }
+              });
+         });
+      }
+
+      function formatAMPM(date) {
+          var hours = date.getHours();
+          var minutes = date.getMinutes();
+          var ampm = hours >= 12 ? 'pm' : 'am';
+          hours = hours % 12;
+          hours = hours ? hours : 12; // the hour '0' should be '12'
+          minutes = minutes < 10 ? '0'+minutes : minutes;
+          var strTime = hours + ':' + minutes + ' ' + ampm;
+          return strTime;
+      }
+
+      function regHandlers() {
+      		
+      		feedTemplate 	= Handlebars.compile($("#feed_template").html());  
+      		// New Feed Post
+      		$('#newFeedbtn').click(function(e){
+      			e.preventDefault();
+      			var postedText = $('#newFeedtarea').val();
+                  
+            if (postedText == null || postedText == '') {
+                // do nothing
+                // Maybe an error?
+            } else {
+  	    			 Visualforce.remoting.Manager.invokeAction(
+  		            '{!$RemoteAction.ChatterFeedController.postFeedData}',
+  		             '{!subjectid}', postedText,  function(result, event) {
+  		                feedItems = result.elements;
+  		                buildTemplate();
+  		          });
+  		       }
+      		});
+
+    		// Reply to the Feed
+    		$(document).on('click','.replybtn',function(e){
+    			e.preventDefault();
+
+          var feedid = $(this).attr('data-feedid');
+          var commentText = $('#reply_'+feedid).val();
+          
+          if (commentText == null || commentText == '') {
+            // Do nothing?
+          } else {
+             // Call the @RemoteAction JavaScript function
+            Visualforce.remoting.Manager.invokeAction(
+            '{!$RemoteAction.ChatterFeedController.postCommentData}',
+             '{!subjectid}',feedid, commentText, function(result, event) {
+                feedItems = result.elements;
+                buildTemplate();
+             });
+          }
+    		});
+
+        // Like a feed 
+        $(document).on('click','.likeBtn',function(e){
+          e.preventDefault();
+          var feedid = $(this).attr('data-feedid');
+           // Call the @RemoteAction JavaScript function
+            Visualforce.remoting.Manager.invokeAction(
+            '{!$RemoteAction.ChatterFeedController.likeFeedItem}',
+             '{!subjectid}',feedid, function(result, event) {
+                feedItems = result.elements;
+                buildTemplate();
+             });
+        });
+
+        // Un-like a feed
+        $(document).on('click','.unlikeBtn',function(e){
+          e.preventDefault();
+          var likeid = $(this).attr('data-likeid');
+           // Call the @RemoteAction JavaScript function
+            Visualforce.remoting.Manager.invokeAction(
+            '{!$RemoteAction.ChatterFeedController.unlikeFeedItem}',
+             '{!subjectid}',likeid, function(result, event) {
+                feedItems = result.elements;
+                buildTemplate();
+             });
+        });
+    	}
+
+    	function getFeedsForGroup() {
+    		// Call the @RemoteAction JavaScript functionnso;e
+            Visualforce.remoting.Manager.invokeAction(
+            '{!$RemoteAction.ChatterFeedController.getFeedData}',
+             '{!subjectid}', function(result, event) {
+                console.log('result');
+                console.log(result);
+                feedItems = result.elements;
+                console.log(feedItems);
+                buildTemplate();
+             });
+    	}
+
+    	function buildTemplate() {
+    		var record_data = {"elements":feedItems};
+			  var result_html = feedTemplate(record_data);
+			  $('#comments').html(result_html);
+    	}
+       
+    </script>
+</apex:component>
