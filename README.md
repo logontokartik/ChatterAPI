@@ -11,3 +11,4 @@ Click below to deploy the package in your org
 After installation, navigate to the page by entering /apex/chatter
 
 NOTE: If you want to use a specific Chatter Group, change the ChatterController class
+PS: Need more test classes
