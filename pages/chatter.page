@@ -1,3 +1,5 @@
+<!-- Built by Kartik Viswanadha -->
+<!-- Uses Bootstrap and HTML5 -->
 <apex:page showHeader="false" sidebar="false" standardStylesheets="false" applyBodyTag="false" applyHtmlTag="false" controller="ChatterController">
     <html>
         <body>
