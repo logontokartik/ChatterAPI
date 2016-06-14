@@ -1,3 +1,6 @@
+/** 
+ * Created By Kartik Viswanadha
+ */
 public with sharing class ChatterController {
 	
 	public String collaborationGroupId {get;set;}
