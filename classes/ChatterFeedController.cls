@@ -2,6 +2,7 @@
  * -----------------------------------------------------------------------------
  * Controller class for chatter_feed Visualforce Component
  * @author Kartik Viswanadha
+ * Demo to MJ
  * -----------------------------------------------------------------------------
  **/
 global with sharing class ChatterFeedController {
